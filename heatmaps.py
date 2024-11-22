@@ -39,11 +39,13 @@ for patient in Oura_Token:
 
         met_vals = day['met']['items']
         class_5_min = [int(num) for num in day['class_5_min'] for i in range(5)]
+        wear_time = [1 if value>0 else 0 for value in class_5_min] # 1 if worn, 0 if not
         timestamps = [day['timestamp'] + timedelta(minutes=i) for i in range(len(met_vals))]
 
         day_data_act = [{
-            'timestamp':ts, 'date': ts.date(), 'time': ts.time(), 'met': met, 'activity': act}
-            for ts, met, act in zip(timestamps, met_vals, class_5_min)]
+            'timestamp':ts, 'date': ts.date(), 'time': ts.time(), 'met': met, 
+            'activity': act, 'wear time': wear}
+            for ts, met, act, wear  in zip(timestamps, met_vals, class_5_min, wear_time)]
         data_populate_act.extend(day_data_act)
 
     # populating sleep data
@@ -83,29 +85,43 @@ for patient in Oura_Token:
     # color_scheme = 'YlGnBu'
     color_scheme = 'Blues'
     df_met = pd.DataFrame(data_populate_act)
-    met = df_met.pivot(index='time', columns='date', values='met')
-    sns.heatmap(met, annot=False, cmap=color_scheme)
-    plt.title(f'{patient}: MET')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'MET.jpeg'))
-    plt.close()
+    # met = df_met.pivot(index='time', columns='date', values='met')
+    # sns.heatmap(met, annot=False, cmap=color_scheme)
+    # plt.title(f'{patient}: MET')
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(output_dir, 'MET.jpeg'))
+    # plt.close()
 
     # plotting met values: classified in 5 min intervals
     # 5-minute activity classification for the activity period
     # 0 = non-wear, 1 = rest, 2 = inactive, 3 = low activity, 4= med activity, 5 = high activity
-    act = df_met.pivot(index='time', columns='date', values='activity')
-    sns.heatmap(act, annot=False, cmap=color_scheme)
-    plt.title(f'{patient}: MET Classified')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'MET Classified.jpeg'))
-    plt.close()
+    # act = df_met.pivot(index='time', columns='date', values='activity')
+    # sns.heatmap(act, annot=False, cmap=color_scheme)
+    # plt.title(f'{patient}: MET Classified')
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(output_dir, 'MET Classified.jpeg'))
+    # plt.close()
+
+    titles = ['MET','MET Classified','Wear Time']
+    for m,metric in enumerate(['met','activity','wear time']):
+        print(metric)
+        act = df_met.pivot(index='time', columns='date', values=metric)
+
+        # plotting heatmaps
+        sns.heatmap(act, annot=False, cmap=color_scheme)
+        plt.title(f'{patient}: {titles[m]}')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f'{titles[m]}.jpeg'))
+        plt.close()
 
     # %% Sleep heatmaps
     df_sleep = pd.DataFrame(data_populate_sleep)
     df_sleep.set_index('timestamp', inplace=True)
-    # for index in df_sleep.index:
-    #     index = index.floor('min')
-    df_sleep.index = df_sleep.index.floor('min')
+    try:
+        df_sleep.index = df_sleep.index.floor('min')
+    except:
+        for index in df_sleep.index:
+            index = index.floor('min')
 
     # Reindexing to include times during the day where no sleep data (better plot visualization purposes)
     start_time = df_sleep.index.min()
