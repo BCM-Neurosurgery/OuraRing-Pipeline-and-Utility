@@ -10,6 +10,17 @@ from bisect import bisect_left
 import pytz
 from datetime import datetime, timezone, date, timedelta
 
+def get_patient_cohort(patient):
+    """Returns cohort name and protocol number for given patient."""
+    if patient[:1] == 'P':
+        cohort = 'PerceptOCD-48392'
+    elif patient[:2] == 'AA':
+        cohort = 'AA-56119'
+    else:
+        print(f'Warning: no valid cohort assignment for {patient}')
+        
+    return cohort
+
 def process_hemisphere(data, hemisphere, central_timezone):
     """Helper function to process data for a single hemisphere."""
     hemisphere_data = data.get('DiagnosticData', {}).get('LFPTrendLogs', {}).get(f'HemisphereLocationDef.{hemisphere}', {})
@@ -99,7 +110,12 @@ def fetch_heartrate_api(end_date, token):
     return response.json()
 
 def save_json_to_file(data, filename):
-    """Saves a JSON object to a file."""
+    """Saves a JSON object to a file, creates the directory if necessary."""
+    directory = os.path.dirname(filename)
+
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+
     with open(filename, 'w') as file:
         json.dump(data, file, indent=3)
         
@@ -216,22 +232,3 @@ def display_progress_bar(fraction_done, bar_length=50):
 
     sys.stdout.write(f"\rProgress: [{arrow + spaces}] {int(fraction_done * 100)}%\n")
     sys.stdout.flush()
-
-def update_heart_rate_json(new_data, existing_json):
-    # Check to see if an existing heart rate json already exists so you can append data if so
-    try:
-        with open(existing_json, 'r') as file:
-            current_data = json.load(file)
-    except FileNotFoundError:
-        current_data = {'data': []}
-    
-    # Convert current data to set for quicker search
-    current_timestamps = {entry['timestamp'] for entry in current_data['data']}
-    
-    # Check new data against existing json
-    for entry in new_data['data']:
-        if entry['timestamp'] not in current_timestamps:
-            current_data['data'].append(entry)
-    
-    with open(existing_json, 'w') as file:
-        json.dump(current_data, file, indent = 3)

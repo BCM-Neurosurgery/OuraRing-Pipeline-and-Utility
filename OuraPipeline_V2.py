@@ -1,144 +1,84 @@
-# %% Loading in Oura Patient Information
+# %% Loading in Patient Information
 from datetime import date, timedelta
 import json
 from utilities import *
 import pandas as pd
+import os
 
-# Load the configuration json containing patient information
+# loading in config.json containing patient information
 with open('config.json', 'r') as file:
     config = json.load(file)
 
 first_date = config['first_date']
-Oura_Token = config['Oura_Token']
-box_directory = config['box_directory']
+oura_dir = config['oura_dir']
+neural_dir = config['neural_dir']
 
 end_date = str(date.today())
-patient_list = [key[-3:] for key in first_date.keys()]
+patient_list = first_date.keys()
 
-# %% Oura API Requests
+# %% Extracting Oura Ring Data
 
-for patient in Oura_Token:
+# looping through each patient and extracting relevant Oura data
+for patient in patient_list:
     
-    oura_token = Oura_Token[patient]
     start_date = first_date[patient]
     start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
     
+    # defining path to Oura data
+    cohort = get_patient_cohort(patient)
+    oura_path = os.path.join(oura_dir,cohort,patient,'oura')
     
+    # finding data within given timeframe
+    date_folders = sorted(os.listdir(oura_path))
+    valid_dates = [f for f in date_folders if start_date <= f <= end_date]
     
-    #  DAILY ACTIVITY DATA
-    url = 'https://api.ouraring.com/v2/usercollection/daily_activity' 
-    params={ 
-        'start_date': f'{start_date}', 
-        'end_date': f'{end_date}' 
+    # defining which files to retrieve data from
+    data_types = {
+        "activity": "daily_activity.json",
+        "sleep": "sleep.json",
+        "stress": "stress.json",
+        "heartrate": "heartrate.json",
     }
-    headers = { 
-    'Authorization': 'Bearer ' + oura_token,
-    }
-    
-    response = requests.request('GET', url, headers=headers, params=params)
-    data = response.json()
-    filename = f'JSONs/Activity/{patient}_Activity.json'
-    save_json_to_file(data, filename)
-    
-    
-    
-    #  SLEEP DATA
-    url = 'https://api.ouraring.com/v2/usercollection/sleep' 
-    params={ 
-        'start_date': f'{start_date}', 
-        'end_date': f'{end_date}' 
-    }
-    headers = { 
-    'Authorization': 'Bearer ' + oura_token,
-    }
-    
-    response = requests.request('GET', url, headers=headers, params=params)
-    data = response.json()
-    filename = f'JSONs/Sleep/Hypnogram/{patient}_Sleep.json'
-    save_json_to_file(data, filename)
-        
-    url = 'https://api.ouraring.com/v2/usercollection/sleep_time' 
-    params={ 
-        'start_date': f'{start_date}', 
-        'end_date': f'{end_date}' 
-    }
-    headers = { 
-    'Authorization': 'Bearer ' + oura_token,
-    }
-    
-    response = requests.request('GET', url, headers=headers, params=params)
-    data = response.json()
-    filename = f'JSONs/Sleep/Optimal Sleep Times/{patient}_OptimalSleep.json'
-    save_json_to_file(data, filename)
-    
-    
-    
-    # STRESS DATA
-    url = 'https://api.ouraring.com/v2/usercollection/daily_stress' 
-    params={ 
-        'start_date': f'{start_date}', 
-        'end_date': f'{end_date}' 
-    }
-    headers = { 
-    'Authorization': 'Bearer ' + oura_token,
-    }
-    
-    response = requests.request('GET', url, headers=headers, params=params)
-    data = response.json()
-    filename = f'JSONs/Stress/{patient}_StressScores.json'
-    save_json_to_file(data, filename)    
-        
-        
-        
-    # HEART RATE DATA
-    url = 'https://api.ouraring.com/v2/usercollection/heartrate'
-    start_date = pd.to_datetime(end_date) - timedelta(days = 30)
-    format_start_date = start_date.strftime('%Y-%m-%dT%H:%M:%S')
-    
-    all_data = {'data': []}
-    next_token = None
-    
-    # This while loop takes pagination into account for Heart Rate request
-    while True:
-        params={ 
-        'start_datetime': f'{format_start_date}-08:00', 
-        'end_datetime': f'{end_date}T00:00:00-08:00' 
-        }
-        
-        if next_token is not None:
-            params['next_token'] = next_token
-            
-        headers = { 
-        'Authorization': 'Bearer ' + oura_token,
-        }
-        
-        response = requests.request('GET', url, headers=headers, params=params) 
-        data = response.json()
-        all_data['data'].extend(data['data'])
-        
-        
-        if next_token is None:
-            break
-        
-        next_token = data.get('next_token')[2:]
-        
-    filename = f'JSONs/Daytime Heart Rate/{patient}_HeartRate.json'
-    
-    #If existing data is present, this will prevent overwritting and instead append to existing data
-    update_heart_rate_json(all_data, filename)
 
-# %% Chronic LFP Extraction From Box
+    # initializing dict to store data
+    all_data = {key: {"data": []} for key in data_types}
+
+    # looping through each date folder and extracting all relevant records
+    for date_folder in valid_dates:
+        date_path = os.path.join(oura_path, date_folder)
+
+        for data_type, filename in data_types.items():
+            full_path = os.path.join(date_path, filename)
+
+            if not os.path.exists(full_path):
+                continue
+
+            with open(full_path, "r") as f:
+                try:
+                    records = json.load(f)
+                    if isinstance(records, list):
+                        all_data[data_type]["data"].extend(records)
+                except json.JSONDecodeError:
+                    pass
+
+    # saving compiled data dicts as jsons
+    save_json_to_file(all_data["activity"], f"JSONs/Activity/{patient}_Activity.json")
+    save_json_to_file(all_data["sleep"], f'JSONs/Sleep/Hypnogram/{patient}_Sleep.json')
+    save_json_to_file(all_data["stress"], f'JSONs/Stress/{patient}_StressScores.json')
+    save_json_to_file(all_data["heartrate"], f'JSONs/Daytime Heart Rate/{patient}_HeartRate.json')
+
+# %% Extracting Chronic LFP Data
 
 for patient in patient_list:
-    if patient == '000' or patient == 'yJY':  # Percept000 is not a clinical patient and JY is a LITT patient; skip them.
-        continue
 
-    directory = os.path.join(box_directory, patient, 'LFP', f'{patient}R')
+    # defining path to neural data
+    cohort = get_patient_cohort(patient)
+    neural_path = os.path.join(neural_dir,cohort,patient,'LFP','R')
 
-    # Extract and combine chronic LFP data
-    times, LFP, stim = extract_chronic_lfp_data(directory)
+    # extract and combine chronic LFP data
+    times, LFP, stim = extract_chronic_lfp_data(neural_path)
 
-    # Convert to a single DataFrame
+    # convert to a single dataframe
     neural_timeseries = pd.DataFrame({
         'Time': times,
         'Chronic_LFP_Left': LFP['Left'],
@@ -147,9 +87,6 @@ for patient in patient_list:
         'Stimulation_Right': stim['Right']
     })
 
-    # Convert dataframe to nested dictionary and save
+    # convert dataframe to nested dictionary and save
     nested_dict = dataframe_to_nested_dict(neural_timeseries)
-    save_filename = f'JSONs/Chronic LFP Data/Percept{patient}_ChronicLFP.json'
-    save_json_to_file(nested_dict, save_filename)
-
-# %%
+    save_json_to_file(nested_dict, f'JSONs/Chronic LFP Data/Percept{patient}_ChronicLFP.json')
