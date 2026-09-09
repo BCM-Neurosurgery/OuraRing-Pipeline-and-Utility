@@ -1,3 +1,5 @@
 config.json
-JSONs/
+data/
+dabi/
+figures/
 __pycache__/
