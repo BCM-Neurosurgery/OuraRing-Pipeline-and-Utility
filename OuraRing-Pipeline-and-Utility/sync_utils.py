@@ -366,16 +366,16 @@ def unpack_data(data):
 
 def extract_non_wear_time(df):
     """
-    Takes a DataFrame, replaces all occurrences of 0.1 in the "met" column with None, and creates 
-    a new column "ring_worn" where the value is False if "met" is 0.1 and True otherwise.
+    Takes a DataFrame, replaces all occurrences of <0.9 in the "met" column with None, and creates 
+    a new column "ring_worn" where the value is False if "met" is <0.9 and True otherwise.
 
     Parameters:
     - df: Input DataFrame with merged LFP, sleep, and activity data
     Returns:
-    - df: Input DataFrame with 0.1 MET values replaced with None and a new "ring_worn" column.
+    - df: Input DataFrame with <0.9 MET values replaced with None and a new "ring_worn" column.
     """
-    # Replace 0.1 with None in the "met" column
-    df['met'] = df['met'].apply(lambda x: None if x == 0.1 or pd.isna(x) else x)
+    # Replace values of <0.9 with None in the "met" column
+    df['met'] = df['met'].apply(lambda x: None if pd.isna(x) or x < 0.9 else x)
     
     # Create the "ring_worn" column
     df['ring_worn'] = df.apply(lambda row: True if pd.notnull(row['met']) or pd.notnull(row['sleep_phase']) else False, axis=1)

@@ -1,5 +1,5 @@
-config.json
-data/
-dabi/
-figures/
+OuraRing-Pipeline-and-Utility/config_personal.json
+OuraRing-Pipeline-and-Utility/data/
+OuraRing-Pipeline-and-Utility/dabi/
+OuraRing-Pipeline-and-Utility/figures/
 __pycache__/
