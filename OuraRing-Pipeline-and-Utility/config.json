@@ -1,0 +1,17 @@
+{
+    "first_date": {
+        "[PatientID]": "[YYYY-MM-DD]",
+        "[PatientID]": "[YYYY-MM-DD]",
+        "[PatientID]": "[YYYY-MM-DD]"
+    },
+
+    "last_date": {
+        "[PatientID]": "[YYYY-MM-DD]",
+        "[PatientID]": "[YYYY-MM-DD]",
+        "[PatientID]": "[YYYY-MM-DD]"
+    },
+
+    "oura_dir": "[insert path here]",
+    
+    "neural_dir": "[insert path here]"
+}
