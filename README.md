@@ -2,7 +2,7 @@
 
 ## Overview
 
-Python-based pipeline for synchronizing Oura wearable data with chronic local field potential (LFP) recordings from the Medtronic Percept deep brain stimulation (DBS) device. For each selected participant and date range, the workflow loads Oura and Percept data from the configured storage locations, aligns measurements across modalities to the nearest available neural timestamp, and exports a synchronized dataset as a CSV for downstream analysis.
+Python-based pipeline for synchronizing Oura wearable data with chronic local field potential (LFP) recordings from the Medtronic Percept deep brain stimulation device. For each selected participant and date range, the workflow loads Oura and Percept data from the configured storage locations, aligns measurements across modalities to the nearest available neural timestamp, and exports a synchronized dataset as a CSV for downstream analysis.
 
 This repository accompanies the preprint, *A Reproducible Framework for Integrating Chronic Deep Brain Stimulation Sensing with Wearable Behavioral Monitoring*.
 
@@ -91,7 +91,7 @@ uv run python OuraPipeline.py
 python OuraPipeline.py
 ```
 
-3. (Optional) The preliminary analyses and figures presented in the manuscript can be reproduced using `figures.ipynb`.
+3. (Optional) To reproduce the preliminary analyses and figures shown in the manuscript, run `figures.ipynb`.
 
 ## Data Availability
 
